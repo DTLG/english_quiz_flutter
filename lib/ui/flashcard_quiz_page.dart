@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import '../controllers/flashcard_quiz_controller.dart';
 import '../widgets/answer_button.dart';
 import '../widgets/stat_chip.dart';
 import '../widgets/streak_indicator.dart';
+import '../widgets/answer_feedback.dart';
 
 class FlashcardQuizPage extends StatefulWidget {
   const FlashcardQuizPage({super.key});
@@ -17,6 +19,9 @@ class FlashcardQuizPage extends StatefulWidget {
 class _FlashcardQuizPageState extends State<FlashcardQuizPage> {
   late final FlashcardQuizController _controller;
   bool _isReady = false;
+  bool _showFeedback = false;
+  bool? _lastAnswerCorrect;
+  Timer? _feedbackTimer;
 
   @override
   void initState() {
@@ -35,9 +40,25 @@ class _FlashcardQuizPageState extends State<FlashcardQuizPage> {
   }
 
   void _handleAnswer(String option) {
+    final isCorrect = _controller.submitAnswer(option);
+    _feedbackTimer?.cancel();
     setState(() {
-      _controller.submitAnswer(option);
+      _lastAnswerCorrect = isCorrect;
+      _showFeedback = true;
     });
+    _feedbackTimer = Timer(const Duration(milliseconds: 1200), () {
+      if (mounted) {
+        setState(() {
+          _showFeedback = false;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _feedbackTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -50,91 +71,103 @@ class _FlashcardQuizPageState extends State<FlashcardQuizPage> {
       body: _isReady
           ? OrientationBuilder(
               builder: (context, orientation) {
-                final contentChildren = [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      StatChip(
-                        label: 'Correct',
-                        value: _controller.correctAnswers,
-                        color: Colors.green.shade600,
-                      ),
-                      StreakIndicator(
-                        currentStreak: _controller.currentStreak,
-                        bestStreak: _controller.bestStreak,
-                      ),
-                      StatChip(
-                        label: 'Wrong',
-                        value: _controller.wrongAnswers,
-                        color: Colors.red.shade600,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 36),
-                  Text(
-                    _controller.currentCard.english,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.displayMedium,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    _controller.currentCard.example,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(color: Colors.grey.shade700),
-                  ),
-                  const SizedBox(height: 32),
-                ];
-
-                final portraitContent = Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                final content = _buildQuizContent(orientation);
+                return Stack(
                   children: [
-                    ...contentChildren,
-                    const Spacer(),
-                    _AnswerRow(
-                      options: _controller.currentOptions,
-                      onSelected: _handleAnswer,
-                    ),
-                  ],
-                );
-
-                final landscapeContent = Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ...contentChildren,
-                    Center(
-                      child: _AnswerRow(
-                        options: _controller.currentOptions,
-                        onSelected: _handleAnswer,
+                    content,
+                    if (_showFeedback && _lastAnswerCorrect != null)
+                      Positioned.fill(
+                        child: AnimatedOpacity(
+                          opacity: _showFeedback ? 1 : 0,
+                          duration: const Duration(milliseconds: 150),
+                          child: AnswerFeedback(
+                            isCorrect: _lastAnswerCorrect!,
+                          ),
+                        ),
                       ),
-                    ),
                   ],
-                );
-
-                final padding =
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 32);
-
-                if (orientation == Orientation.landscape) {
-                  return SingleChildScrollView(
-                    child: Padding(
-                      padding: padding,
-                      child: landscapeContent,
-                    ),
-                  );
-                }
-
-                return Padding(
-                  padding: padding,
-                  child: portraitContent,
                 );
               },
             )
-          : const Center(
-              child: CircularProgressIndicator(),
-            ),
+          : const Center(child: CircularProgressIndicator()),
+    );
+  }
+
+  Widget _buildQuizContent(Orientation orientation) {
+    final contentChildren = [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          StatChip(
+            label: 'Correct',
+            value: _controller.correctAnswers,
+            color: Colors.green.shade600,
+          ),
+          StreakIndicator(
+            currentStreak: _controller.currentStreak,
+            bestStreak: _controller.bestStreak,
+          ),
+          StatChip(
+            label: 'Wrong',
+            value: _controller.wrongAnswers,
+            color: Colors.red.shade600,
+          ),
+        ],
+      ),
+      const SizedBox(height: 36),
+      Text(
+        _controller.currentCard.english,
+        textAlign: TextAlign.center,
+        style: Theme.of(context).textTheme.displayMedium,
+      ),
+      const SizedBox(height: 12),
+      Text(
+        _controller.currentCard.example,
+        textAlign: TextAlign.center,
+        style: Theme.of(context)
+            .textTheme
+            .titleMedium
+            ?.copyWith(color: Colors.grey.shade700),
+      ),
+      const SizedBox(height: 32),
+    ];
+
+    final padding = const EdgeInsets.symmetric(horizontal: 24, vertical: 32);
+
+    if (orientation == Orientation.landscape) {
+      return SingleChildScrollView(
+        child: Padding(
+          padding: padding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ...contentChildren,
+              Center(
+                child: _AnswerRow(
+                  options: _controller.currentOptions,
+                  onSelected: _handleAnswer,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: padding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ...contentChildren,
+          const Spacer(),
+          _AnswerRow(
+            options: _controller.currentOptions,
+            onSelected: _handleAnswer,
+          ),
+        ],
+      ),
     );
   }
 }
