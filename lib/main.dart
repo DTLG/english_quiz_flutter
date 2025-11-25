@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'ui/home_page.dart';
+import 'ui/login_page.dart';
 
 const _supabaseUrl = 'http://178.212.243.75:8000';
 const _supabaseAnonKey =
@@ -29,7 +32,44 @@ class MainApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
-      home: const HomePage(),
+      home: const AuthGate(),
     );
+  }
+}
+
+class AuthGate extends StatefulWidget {
+  const AuthGate({super.key});
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  late StreamSubscription<AuthState> _authSub;
+  Session? _session;
+
+  @override
+  void initState() {
+    super.initState();
+    _session = Supabase.instance.client.auth.currentSession;
+    _authSub = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      setState(() {
+        _session = data.session;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSub.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_session == null) {
+      return const LoginPage();
+    }
+    return const HomePage();
   }
 }

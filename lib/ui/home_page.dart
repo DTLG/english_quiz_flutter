@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'flashcard_quiz_page.dart';
+import 'progress_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -52,6 +53,12 @@ class _HomePageState extends State<HomePage> {
         builder: (_) => FlashcardQuizPage(category: category, title: title),
       ),
     );
+  }
+
+  void _openProgress() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const ProgressPage()));
   }
 
   @override
@@ -149,6 +156,19 @@ class _HomePageState extends State<HomePage> {
                         ),
                       );
                     },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _openProgress,
+                    icon: const Icon(Icons.show_chart_rounded),
+                    label: const Text('Мій прогрес'),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      textStyle: theme.textTheme.titleMedium,
+                    ),
                   ),
                 ),
               ],

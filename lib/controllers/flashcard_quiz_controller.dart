@@ -71,14 +71,18 @@ class FlashcardQuizController {
   }
 
   Future<void> _ensureUserId() async {
-    final storedId = _prefs?.getString(_kUserIdKey);
-    if (storedId != null && storedId.isNotEmpty) {
-      _userId = storedId;
+    // final storedId = _prefs?.getString(_kUserIdKey);
+    // if (storedId != null && storedId.isNotEmpty) {
+    //   _userId = storedId;
+    //   return;
+    // }
+    // final newId = const Uuid().v4();
+    // await _prefs?.setString(_kUserIdKey, newId);
+    final currentUser = Supabase.instance.client.auth.currentUser;
+    if (currentUser != null) {
+      _userId = currentUser.id;
       return;
     }
-    final newId = const Uuid().v4();
-    await _prefs?.setString(_kUserIdKey, newId);
-    _userId = newId;
   }
 
   Future<void> _loadFlashcards() async {
@@ -180,7 +184,7 @@ class FlashcardQuizController {
       await _supabase
           .schema('english_quiz')
           .from('daily_results')
-          .upsert(payload, onConflict: 'day,category');
+          .upsert(payload, onConflict: 'user_id,day,category');
     } catch (_) {
       // Ignore sync failures; data will be retried on the next update.
     }
