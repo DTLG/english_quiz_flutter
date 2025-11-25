@@ -11,9 +11,10 @@ const _kBestStreakKey = 'best_streak';
 const _kUserIdKey = 'flashcard_user_id';
 
 class FlashcardQuizController {
-  FlashcardQuizController({SupabaseClient? client})
+  FlashcardQuizController({SupabaseClient? client, this.category})
     : _supabase = client ?? Supabase.instance.client;
 
+  final String? category;
   final SupabaseClient _supabase;
   final Random _random = Random();
   SharedPreferences? _prefs;
@@ -30,6 +31,8 @@ class FlashcardQuizController {
   int _bestStreak = 0;
   int _dailyBestStreak = 0;
   int _sessionCount = 0;
+
+  String get _categoryKey => category ?? 'all';
 
   Flashcard get currentCard => _currentCard;
   List<String> get currentOptions => List.unmodifiable(_currentOptions);
@@ -79,7 +82,16 @@ class FlashcardQuizController {
   }
 
   Future<void> _loadFlashcards() async {
-    final data = await _supabase.schema('english_quiz').from('words').select();
+    var request = _supabase
+        .schema('english_quiz')
+        .from('words')
+        .select('english, ukrainian, example, category, created_at');
+
+    if (category != null) {
+      request = request.eq('category', category!);
+    }
+
+    final data = await request.order('created_at', ascending: false);
 
     final cards = (data as List<dynamic>)
         .cast<Map<String, dynamic>>()
@@ -88,6 +100,7 @@ class FlashcardQuizController {
             english: (row['english'] as String?)?.trim() ?? '',
             ukrainian: (row['ukrainian'] as String?)?.trim() ?? '',
             example: (row['example'] as String?)?.trim() ?? '',
+            category: (row['category'] as String?)?.trim() ?? 'uncategorized',
           ),
         )
         .where((card) => card.english.isNotEmpty && card.ukrainian.isNotEmpty)
@@ -117,6 +130,7 @@ class FlashcardQuizController {
           .select()
           .eq('user_id', _userId)
           .eq('day', _currentDayIso)
+          .eq('category', _categoryKey)
           .maybeSingle();
 
       if (existing != null) {
@@ -136,6 +150,7 @@ class FlashcardQuizController {
       await _supabase.schema('english_quiz').from('daily_results').insert({
         'user_id': _userId,
         'day': _currentDayIso,
+        'category': _categoryKey,
         'correct_count': 0,
         'wrong_count': 0,
         'best_streak': 0,
@@ -153,6 +168,7 @@ class FlashcardQuizController {
     final payload = {
       'user_id': _userId,
       'day': _currentDayIso,
+      'category': _categoryKey,
       'correct_count': correctAnswers,
       'wrong_count': wrongAnswers,
       'best_streak': _dailyBestStreak,
@@ -164,7 +180,7 @@ class FlashcardQuizController {
       await _supabase
           .schema('english_quiz')
           .from('daily_results')
-          .upsert(payload, onConflict: 'user_id,day');
+          .upsert(payload, onConflict: 'day,category');
     } catch (_) {
       // Ignore sync failures; data will be retried on the next update.
     }

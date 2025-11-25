@@ -10,7 +10,14 @@ import '../widgets/streak_indicator.dart';
 import '../widgets/answer_feedback.dart';
 
 class FlashcardQuizPage extends StatefulWidget {
-  const FlashcardQuizPage({super.key});
+  const FlashcardQuizPage({
+    super.key,
+    this.category,
+    this.title = 'English Flash Cards',
+  });
+
+  final String? category;
+  final String title;
 
   @override
   State<FlashcardQuizPage> createState() => _FlashcardQuizPageState();
@@ -26,7 +33,7 @@ class _FlashcardQuizPageState extends State<FlashcardQuizPage> {
   @override
   void initState() {
     super.initState();
-    _controller = FlashcardQuizController();
+    _controller = FlashcardQuizController(category: widget.category);
     _initializeController();
   }
 
@@ -65,7 +72,7 @@ class _FlashcardQuizPageState extends State<FlashcardQuizPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('English Flash Cards'),
+        title: Text(widget.title),
         centerTitle: true,
       ),
       body: _isReady
@@ -115,6 +122,26 @@ class _FlashcardQuizPageState extends State<FlashcardQuizPage> {
         ],
       ),
       const SizedBox(height: 36),
+      Align(
+        alignment: Alignment.center,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Colors.indigo.shade50,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
+              widget.category?.toUpperCase() ?? 'RANDOM MIX',
+              style: Theme.of(context)
+                  .textTheme
+                  .labelLarge
+                  ?.copyWith(color: Colors.indigo.shade600),
+            ),
+          ),
+        ),
+      ),
+      const SizedBox(height: 24),
       Text(
         _controller.currentCard.english,
         textAlign: TextAlign.center,

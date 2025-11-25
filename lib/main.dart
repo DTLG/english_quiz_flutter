@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'ui/flashcard_quiz_page.dart';
+import 'ui/home_page.dart';
 
 const _supabaseUrl = 'http://178.212.243.75:8000';
 const _supabaseAnonKey =
@@ -29,7 +29,7 @@ class MainApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
-      home: const FlashcardQuizPage(),
+      home: const HomePage(),
     );
   }
 }
