@@ -72,7 +72,21 @@ class _FlashcardQuizPageState extends State<FlashcardQuizPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title),
+        title: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Colors.indigo.shade50,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
+              widget.category?.toUpperCase() ?? 'RANDOM MIX',
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(color: Colors.indigo.shade600),
+            ),
+          ),
+        ),
         centerTitle: true,
       ),
       body: _isReady
@@ -87,9 +101,7 @@ class _FlashcardQuizPageState extends State<FlashcardQuizPage> {
                         child: AnimatedOpacity(
                           opacity: _showFeedback ? 1 : 0,
                           duration: const Duration(milliseconds: 150),
-                          child: AnswerFeedback(
-                            isCorrect: _lastAnswerCorrect!,
-                          ),
+                          child: AnswerFeedback(isCorrect: _lastAnswerCorrect!),
                         ),
                       ),
                   ],
@@ -121,27 +133,7 @@ class _FlashcardQuizPageState extends State<FlashcardQuizPage> {
           ),
         ],
       ),
-      const SizedBox(height: 36),
-      Align(
-        alignment: Alignment.center,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: Colors.indigo.shade50,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Text(
-              widget.category?.toUpperCase() ?? 'RANDOM MIX',
-              style: Theme.of(context)
-                  .textTheme
-                  .labelLarge
-                  ?.copyWith(color: Colors.indigo.shade600),
-            ),
-          ),
-        ),
-      ),
-      const SizedBox(height: 24),
+      Spacer(),
       Text(
         _controller.currentCard.english,
         textAlign: TextAlign.center,
@@ -151,10 +143,9 @@ class _FlashcardQuizPageState extends State<FlashcardQuizPage> {
       Text(
         _controller.currentCard.example,
         textAlign: TextAlign.center,
-        style: Theme.of(context)
-            .textTheme
-            .titleMedium
-            ?.copyWith(color: Colors.grey.shade700),
+        style: Theme.of(
+          context,
+        ).textTheme.titleMedium?.copyWith(color: Colors.grey.shade700),
       ),
       const SizedBox(height: 32),
     ];
@@ -188,7 +179,6 @@ class _FlashcardQuizPageState extends State<FlashcardQuizPage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           ...contentChildren,
-          const Spacer(),
           _AnswerRow(
             options: _controller.currentOptions,
             onSelected: _handleAnswer,
@@ -200,42 +190,43 @@ class _FlashcardQuizPageState extends State<FlashcardQuizPage> {
 }
 
 class _AnswerRow extends StatelessWidget {
-  const _AnswerRow({
-    required this.options,
-    required this.onSelected,
-  });
+  const _AnswerRow({required this.options, required this.onSelected});
 
   final List<String> options;
   final ValueChanged<String> onSelected;
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
-    const horizontalPadding = 24.0 * 2;
-    const gap = 12.0;
+    const spacing = 12.0;
 
-    final availableWidth = (size.width - horizontalPadding).clamp(0.0, double.infinity);
-    final widthPerButton =
-        ((availableWidth - gap * (options.length - 1)) / options.length).clamp(48.0, availableWidth);
-    final buttonSize = math.max(64.0, math.min(widthPerButton, size.height * 0.22));
+    return SafeArea(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final maxWidth = constraints.maxWidth;
+          final double tileWidth = math.max(72.0, (maxWidth - spacing) / 2);
+          final double tileHeight = math.min(
+            MediaQuery.sizeOf(context).height * 0.25,
+            tileWidth,
+          );
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(options.length, (index) {
-        final option = options[index];
-        return Padding(
-          padding: EdgeInsets.only(right: index == options.length - 1 ? 0 : gap),
-          child: SizedBox(
-            width: buttonSize,
-            height: buttonSize,
-            child: AnswerButton(
-              label: option,
-              onTap: () => onSelected(option),
-            ),
-          ),
-        );
-      }),
+          return Wrap(
+            spacing: spacing,
+            runSpacing: spacing,
+            children: options
+                .map(
+                  (option) => SizedBox(
+                    width: tileWidth,
+                    height: tileHeight,
+                    child: AnswerButton(
+                      label: option,
+                      onTap: () => onSelected(option),
+                    ),
+                  ),
+                )
+                .toList(),
+          );
+        },
+      ),
     );
   }
 }
-

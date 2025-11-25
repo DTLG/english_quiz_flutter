@@ -60,13 +60,13 @@ class FlashcardQuizController {
       if (_currentStreak > _dailyBestStreak) {
         _dailyBestStreak = _currentStreak;
       }
+      _loadNextQuestion();
     } else {
       wrongAnswers++;
       _currentStreak = 0;
     }
 
     unawaited(_syncDailyResults());
-    _loadNextQuestion();
     return isCorrect;
   }
 

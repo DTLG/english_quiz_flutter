@@ -27,27 +27,29 @@ class _HomePageState extends State<HomePage> {
         .select('category')
         .not('category', 'is', null);
 
-    final rows = (response as List<dynamic>)
-        .cast<Map<String, dynamic>>()
-        .map((row) => (row['category'] as String).trim())
-        .where((category) => category.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
+    final rows =
+        (response as List<dynamic>)
+            .cast<Map<String, dynamic>>()
+            .map((row) => (row['category'] as String).trim())
+            .where((category) => category.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
 
     return rows;
   }
 
-  void _openQuiz({
-    String? category,
-    required String title,
-  }) {
+  Future<void> _refreshCategories() async {
+    setState(() {
+      _categoriesFuture = _fetchCategories();
+    });
+    await _categoriesFuture;
+  }
+
+  void _openQuiz({String? category, required String title}) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => FlashcardQuizPage(
-          category: category,
-          title: title,
-        ),
+        builder: (_) => FlashcardQuizPage(category: category, title: title),
       ),
     );
   }
@@ -87,10 +89,8 @@ class _HomePageState extends State<HomePage> {
                   color: Colors.orange.shade300,
                   title: '🎲 Випадковий тест',
                   description: 'Слова з усіх категорій',
-                  onTap: () => _openQuiz(
-                    category: null,
-                    title: 'Випадкові слова',
-                  ),
+                  onTap: () =>
+                      _openQuiz(category: null, title: 'Випадкові слова'),
                 ),
                 const SizedBox(height: 16),
                 Expanded(
@@ -117,9 +117,10 @@ class _HomePageState extends State<HomePage> {
                           ),
                         );
                       }
-                      return SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                      return RefreshIndicator(
+                        onRefresh: _refreshCategories,
+                        child: ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
                           children: [
                             Text(
                               'Категорії',
@@ -143,6 +144,7 @@ class _HomePageState extends State<HomePage> {
                                   )
                                   .toList(),
                             ),
+                            const SizedBox(height: 120),
                           ],
                         ),
                       );
@@ -196,10 +198,7 @@ class _MenuButton extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      description,
-                      style: theme.textTheme.bodyMedium,
-                    ),
+                    Text(description, style: theme.textTheme.bodyMedium),
                   ],
                 ),
               ),
@@ -213,10 +212,7 @@ class _MenuButton extends StatelessWidget {
 }
 
 class _CategoryCard extends StatelessWidget {
-  const _CategoryCard({
-    required this.label,
-    required this.onTap,
-  });
+  const _CategoryCard({required this.label, required this.onTap});
 
   final String label;
   final VoidCallback onTap;
@@ -233,14 +229,12 @@ class _CategoryCard extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Text(
             label,
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.w600),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
         ),
       ),
     );
   }
 }
-
